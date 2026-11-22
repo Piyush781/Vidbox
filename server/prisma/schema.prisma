@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("USER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profiles      Profile[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  avatarkey String   @default("avatar-1")
+  isKids    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchList     WatchListItem[]
+  watchprogress WatchProgress[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model WatchListItem {
+  id        String   @id @default(cuid())
+  profileId String
+  tmdbId    Int
+  mediaType String
+  addedAt   DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, tmdbId, mediaType])
+  @@index([profileId, addedAt])
+}
+
+model WatchProgress {
+  id              String   @id @default(cuid())
+  profileId       String
+  tmdbId          Int
+  mediaType       String
+  positionSeconds Int      @default(0)
+  durationSeconds Int      @default(0)
+  completed       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, tmdbId, mediaType])
+  @@index([profileId, updatedAt])
+}
